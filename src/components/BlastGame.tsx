@@ -7,7 +7,6 @@ import {
   hasAnyMove,
   newTray,
   place,
-  randomPiece,
   type Board,
   type Piece,
 } from "@/lib/blast";
