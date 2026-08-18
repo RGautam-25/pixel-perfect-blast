@@ -19,6 +19,16 @@
  */
 
 @theme inline {
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --color-orb-1: var(--orb-1);
+  --color-orb-2: var(--orb-2);
+  --color-orb-3: var(--orb-3);
+  --color-orb-4: var(--orb-4);
+  --color-orb-5: var(--orb-5);
+  --color-orb-6: var(--orb-6);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -62,26 +72,42 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --radius: 1rem;
+  --surface: oklch(0.19 0.045 275);
+  --surface-2: oklch(0.24 0.055 278);
+  --orb-1: oklch(0.72 0.19 20);
+  --orb-2: oklch(0.8 0.17 75);
+  --orb-3: oklch(0.85 0.17 145);
+  --orb-4: oklch(0.72 0.15 205);
+  --orb-5: oklch(0.66 0.2 295);
+  --orb-6: oklch(0.75 0.2 340);
+  --gradient-space: radial-gradient(
+      120% 90% at 50% -10%,
+      oklch(0.36 0.13 300 / 0.65),
+      transparent 60%
+    ),
+    radial-gradient(90% 70% at 10% 110%, oklch(0.4 0.14 210 / 0.5), transparent 60%),
+    linear-gradient(180deg, oklch(0.12 0.04 280), oklch(0.09 0.03 270));
+  --shadow-board: 0 40px 90px -40px oklch(0.5 0.2 300 / 0.8);
+  --background: oklch(0.11 0.035 275);
+  --foreground: oklch(0.97 0.01 280);
+  --card: oklch(0.19 0.045 275);
+  --card-foreground: oklch(0.97 0.01 280);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.72 0.19 320);
+  --primary-foreground: oklch(0.14 0.04 280);
+  --secondary: oklch(0.24 0.055 278);
+  --secondary-foreground: oklch(0.97 0.01 280);
+  --muted: oklch(0.24 0.055 278);
+  --muted-foreground: oklch(0.72 0.03 280);
+  --accent: oklch(0.78 0.16 195);
+  --accent-foreground: oklch(0.14 0.04 280);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.72 0.19 320);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -98,6 +124,8 @@
 }
 
 .dark {
+  --surface: oklch(0.19 0.045 275);
+  --surface-2: oklch(0.24 0.055 278);
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
@@ -141,4 +169,83 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+}
+
+
+@layer base {
+  body {
+    background-image: var(--gradient-space);
+    background-attachment: fixed;
+    font-family: var(--font-sans);
+  }
+}
+
+@keyframes orb-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes orb-burst {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    filter: brightness(1);
+  }
+  40% {
+    transform: scale(1.45);
+    filter: brightness(2.2);
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-42px);
+    opacity: 0;
+  }
+}
+
+@keyframes aurora {
+  0%,
+  100% {
+    transform: translate3d(-4%, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, -3%, 0) scale(1.08);
+  }
+}
+
+@utility orb-pop {
+  animation: orb-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@utility orb-burst {
+  animation: orb-burst 340ms ease-in forwards;
+}
+
+@utility float-up {
+  animation: float-up 900ms ease-out forwards;
+}
+
+@utility aurora {
+  animation: aurora 14s ease-in-out infinite;
 }
