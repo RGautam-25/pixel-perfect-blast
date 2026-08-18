@@ -249,3 +249,83 @@
 @utility aurora {
   animation: aurora 14s ease-in-out infinite;
 }
+
+@keyframes tray-in {
+  0% {
+    transform: translateY(28px) scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes banner-in {
+  0% {
+    transform: scale(0.6) rotate(-6deg);
+    opacity: 0;
+  }
+  35% {
+    transform: scale(1.12) rotate(2deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+}
+
+@keyframes splash-in {
+  0% {
+    transform: translateY(18px) scale(0.94);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes title-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 18px color-mix(in oklab, var(--primary) 60%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 0 34px color-mix(in oklab, var(--accent) 70%, transparent));
+  }
+}
+
+@keyframes orbit {
+  0% {
+    transform: rotate(0deg) translateX(74px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(74px) rotate(-360deg);
+  }
+}
+
+@utility tray-in {
+  animation: tray-in 320ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+@utility banner-in {
+  animation: banner-in 1100ms ease-out forwards;
+}
+
+@utility splash-in {
+  animation: splash-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility title-glow {
+  animation: title-glow 3.6s ease-in-out infinite;
+}
+
+@utility orbit {
+  animation: orbit 9s linear infinite;
+}
