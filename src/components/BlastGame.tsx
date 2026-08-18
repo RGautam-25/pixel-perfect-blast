@@ -11,27 +11,38 @@ import {
   type Piece,
 } from "@/lib/blast";
 import { Orb, orbColor } from "@/components/Orb";
+import { Splash } from "@/components/Splash";
+import { loadSoundPref, setSoundOn, sfx } from "@/lib/sfx";
 import { cn } from "@/lib/utils";
 
-type Floater = { id: number; text: string; x: number; y: number };
+type Floater = { id: number; text: string };
 
 let floatId = 0;
 
+const PRAISE = ["NICE!", "GREAT!", "SUPERB!", "AMAZING!", "UNSTOPPABLE!", "LEGENDARY!"];
+const praiseFor = (lines: number, streak: number) =>
+  PRAISE[Math.min(lines + streak - 1, PRAISE.length - 1)]!;
+
 export function BlastGame() {
+  const [started, setStarted] = useState(false);
   const [board, setBoard] = useState<Board>(emptyBoard);
-  const [tray, setTray] = useState<Piece[]>(newTray);
+  const [tray, setTray] = useState<Piece[]>([]);
+  const [trayKey, setTrayKey] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [hover, setHover] = useState<{ r: number; c: number } | null>(null);
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [sound, setSound] = useState(true);
   const [bursting, setBursting] = useState<Set<string>>(new Set());
   const [floaters, setFloaters] = useState<Floater[]>([]);
+  const [banner, setBanner] = useState<{ id: number; text: string } | null>(null);
   const [over, setOver] = useState(false);
 
   useEffect(() => {
     const stored = Number(localStorage.getItem("orbblast-best") ?? 0);
     if (stored) setBest(stored);
+    setSound(loadSoundPref());
   }, []);
 
   useEffect(() => {
@@ -63,15 +74,32 @@ export function BlastGame() {
     return m;
   }, [piece, anchor]);
 
-  const reset = useCallback(() => {
+  const start = useCallback(() => {
     setBoard(emptyBoard());
     setTray(newTray());
+    setTrayKey((k) => k + 1);
     setSelected(null);
     setScore(0);
     setStreak(0);
     setOver(false);
+    setBanner(null);
     setBursting(new Set());
+    setStarted(true);
+    sfx.start();
   }, []);
+
+  const toggleSound = () => {
+    const next = !sound;
+    setSound(next);
+    setSoundOn(next);
+    if (next) sfx.select();
+  };
+
+  const showBanner = (text: string) => {
+    const id = floatId++;
+    setBanner({ id, text });
+    setTimeout(() => setBanner((b) => (b && b.id === id ? null : b)), 1100);
+  };
 
   const commit = (p: Piece, r0: number, c0: number) => {
     const placed = place(board, p, r0, c0);
@@ -83,10 +111,12 @@ export function BlastGame() {
       nextStreak = streak + 1;
       gained += lines * 10 * lines + nextStreak * 5;
       setBursting(new Set(clearedCells));
-      const label = lines > 1 ? `${lines}x COMBO +${gained}` : `+${gained}`;
       const id = floatId++;
-      setFloaters((f) => [...f, { id, text: label, x: 50, y: 50 }]);
+      setFloaters((f) => [...f, { id, text: `+${gained}` }]);
       setTimeout(() => setFloaters((f) => f.filter((x) => x.id !== id)), 900);
+      showBanner(lines > 1 ? `${lines}x COMBO · ${praiseFor(lines, nextStreak)}` : praiseFor(lines, nextStreak));
+      if (lines > 1 || nextStreak > 1) sfx.combo();
+      sfx.clear(lines);
       setTimeout(() => {
         setBoard(cleared);
         setBursting(new Set());
@@ -95,18 +125,23 @@ export function BlastGame() {
     } else {
       nextStreak = 0;
       setBoard(placed);
+      sfx.place();
     }
     setStreak(nextStreak);
     setScore((s) => s + gained);
 
     const remaining = tray.filter((t) => t.id !== p.id);
     const nextTray = remaining.length === 0 ? newTray() : remaining;
+    if (remaining.length === 0) setTrayKey((k) => k + 1);
     setTray(nextTray);
     setSelected(null);
     setHover(null);
 
     setTimeout(() => {
-      if (!hasAnyMove(lines > 0 ? cleared : placed, nextTray)) setOver(true);
+      if (!hasAnyMove(lines > 0 ? cleared : placed, nextTray)) {
+        setOver(true);
+        sfx.over();
+      }
     }, 320);
   };
 
@@ -123,6 +158,8 @@ export function BlastGame() {
     return false;
   };
 
+  const newBest = over && score > 0 && score >= best;
+
   return (
     <div className="relative mx-auto flex w-full max-w-md flex-col gap-6">
       <header className="flex items-end justify-between">
@@ -134,7 +171,15 @@ export function BlastGame() {
             BLAST
           </h1>
         </div>
-        <div className="flex gap-3 text-right">
+        <div className="flex items-center gap-3 text-right">
+          <button
+            type="button"
+            onClick={toggleSound}
+            aria-label={sound ? "Mute sound" : "Unmute sound"}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/50 bg-surface/60 text-base backdrop-blur transition-transform hover:scale-105"
+          >
+            <span aria-hidden>{sound ? "🔊" : "🔈"}</span>
+          </button>
           <Stat label="Score" value={score} glow />
           <Stat label="Best" value={best} />
         </div>
@@ -168,10 +213,7 @@ export function BlastGame() {
                   />
                   {v !== null && (
                     <span
-                      className={cn(
-                        "absolute inset-0 orb-pop",
-                        bursting.has(key) && "orb-burst",
-                      )}
+                      className={cn("absolute inset-0 orb-pop", bursting.has(key) && "orb-burst")}
                     >
                       <Orb color={v} />
                     </span>
@@ -190,31 +232,50 @@ export function BlastGame() {
         {floaters.map((f) => (
           <span
             key={f.id}
-            className="font-display pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 text-xl font-bold text-accent float-up"
+            className="font-display float-up pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 text-xl font-bold text-accent"
             style={{ textShadow: "0 0 18px color-mix(in oklab, var(--accent) 70%, transparent)" }}
           >
             {f.text}
           </span>
         ))}
 
+        {banner && (
+          <span
+            key={banner.id}
+            className="font-display banner-in pointer-events-none absolute top-[38%] left-1/2 -translate-x-1/2 text-2xl font-extrabold whitespace-nowrap text-primary"
+            style={{ textShadow: "0 0 26px color-mix(in oklab, var(--primary) 75%, transparent)" }}
+          >
+            {banner.text}
+          </span>
+        )}
+
         {over && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-[2rem] bg-background/80 backdrop-blur-md">
-            <p className="font-display text-2xl font-extrabold">No moves left</p>
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-[2rem] bg-background/85 backdrop-blur-md">
+            {newBest && (
+              <p className="font-display text-sm tracking-[0.3em] text-accent uppercase">
+                🎉 New best!
+              </p>
+            )}
+            <p className="font-display text-2xl font-extrabold">
+              {newBest ? "Congratulations!" : "No moves left"}
+            </p>
             <p className="text-sm text-muted-foreground">
               You scored <span className="text-accent">{score}</span>
             </p>
             <button
-              onClick={reset}
+              onClick={start}
               className="font-display rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-[0_0_28px_color-mix(in_oklab,var(--primary)_55%,transparent)] transition-transform hover:scale-105"
             >
               Play again
             </button>
           </div>
         )}
+
+        {!started && <Splash best={best} onStart={start} />}
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        {tray.map((p) => {
+        {tray.map((p, i) => {
           const playable = trayPlayable(p);
           const active = selected === p.id;
           return (
@@ -222,19 +283,24 @@ export function BlastGame() {
               key={p.id}
               type="button"
               disabled={!playable}
-              onClick={() => setSelected(active ? null : p.id)}
+              onClick={() => {
+                setSelected(active ? null : p.id);
+                if (!active) sfx.select();
+              }}
               className={cn(
-                "flex aspect-square items-center justify-center rounded-3xl border border-border/50 bg-surface/60 p-3 backdrop-blur transition-all",
+                "tray-in flex aspect-square items-center justify-center rounded-3xl border border-border/50 bg-surface/60 p-3 backdrop-blur transition-all",
                 active && "border-accent/70 scale-[1.04]",
                 !playable && "opacity-30",
               )}
-              style={
-                active
+              style={{
+                animationDelay: `${i * 70}ms`,
+                ...(active
                   ? {
                       boxShadow: `0 0 30px color-mix(in oklab, ${orbColor(p.color)} 45%, transparent)`,
                     }
-                  : undefined
-              }
+                  : {}),
+              }}
+              data-tray={trayKey}
             >
               <div
                 className="grid gap-[3px]"
@@ -243,12 +309,12 @@ export function BlastGame() {
                   width: `${Math.min(p.shape.w, 5) * 18}px`,
                 }}
               >
-                {Array.from({ length: p.shape.w * p.shape.h }).map((_, i) => {
-                  const r = Math.floor(i / p.shape.w);
-                  const c = i % p.shape.w;
+                {Array.from({ length: p.shape.w * p.shape.h }).map((_, idx) => {
+                  const r = Math.floor(idx / p.shape.w);
+                  const c = idx % p.shape.w;
                   const filled = p.shape.cells.some(([a, b]) => a === r && b === c);
                   return (
-                    <span key={i} className="aspect-square">
+                    <span key={idx} className="aspect-square">
                       {filled && <Orb color={p.color} />}
                     </span>
                   );
