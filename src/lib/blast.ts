@@ -79,7 +79,7 @@ const RAW: number[][][] = [
 export const SHAPES: Shape[] = RAW.map((m) => {
   const cells: [number, number][] = [];
   m.forEach((row, r) => row.forEach((v, c) => v && cells.push([r, c])));
-  return { cells, h: m.length, w: m[0].length };
+  return { cells, h: m.length, w: m[0]!.length };
 });
 
 export const COLORS = 6;
@@ -90,7 +90,7 @@ export const emptyBoard = (): Board =>
 let seq = 0;
 export const randomPiece = (): Piece => ({
   id: `p${seq++}-${Math.random().toString(36).slice(2, 7)}`,
-  shape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
+  shape: SHAPES[Math.floor(Math.random() * SHAPES.length)]!,
   color: Math.floor(Math.random() * COLORS),
 });
 
@@ -100,7 +100,7 @@ export function canPlace(board: Board, shape: Shape, r0: number, c0: number) {
   return shape.cells.every(([r, c]) => {
     const r1 = r0 + r;
     const c1 = c0 + c;
-    return r1 >= 0 && c1 >= 0 && r1 < GRID && c1 < GRID && board[r1][c1] === null;
+    return r1 >= 0 && c1 >= 0 && r1 < GRID && c1 < GRID && board[r1]![c1] === null;
   });
 }
 
@@ -115,7 +115,7 @@ export function hasAnyMove(board: Board, pieces: Piece[]) {
 export function place(board: Board, piece: Piece, r0: number, c0: number): Board {
   const next = board.map((row) => row.slice());
   piece.shape.cells.forEach(([r, c]) => {
-    next[r0 + r][c0 + c] = piece.color;
+    next[r0 + r]![c0 + c] = piece.color;
   });
   return next;
 }
@@ -129,7 +129,7 @@ export type ClearResult = {
 export function clearLines(board: Board): ClearResult {
   const rows: number[] = [];
   const cols: number[] = [];
-  for (let r = 0; r < GRID; r++) if (board[r].every((v) => v !== null)) rows.push(r);
+  for (let r = 0; r < GRID; r++) if (board[r]!.every((v) => v !== null)) rows.push(r);
   for (let c = 0; c < GRID; c++)
     if (board.every((row) => row[c] !== null)) cols.push(c);
 
